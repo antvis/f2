@@ -22,15 +22,13 @@ import Marker from './component/marker';
 import * as Tooltip from './plugin/tooltip';
 import * as Guide from './plugin/guide';
 import * as Legend from './plugin/legend';
-import * as Animation from './animation/detail';
-import Animate from './animation/animate';
 
 const Component = {
   Marker
 };
 
 // register plugins
-Chart.plugins.register([ Tooltip, Legend, Guide, Animation ]);
+Chart.plugins.register([ Tooltip, Legend, Guide ]);
 
 // 默认添加交互
 import './interaction/new/index';
@@ -43,8 +41,7 @@ export {
   G,
   Util,
   Helper,
-  track,
-  Animate
+  track
 };
 
 export default {
@@ -55,7 +52,6 @@ export default {
   G,
   Util,
   Helper,
-  track,
-  Animate
+  track
 };
 

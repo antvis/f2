@@ -1,6 +1,6 @@
 import Canvas from './canvas';
 import Group from './group';
-import Shape from './shape';
+import Shape, { createShape } from './shape';
 import Matrix from './util/matrix';
 import Vector2 from './util/vector2';
 
@@ -20,5 +20,6 @@ export {
   Group,
   Shape,
   Matrix,
-  Vector2
+  Vector2,
+  createShape
 };

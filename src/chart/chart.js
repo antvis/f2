@@ -570,6 +570,54 @@ class Chart extends Base {
     }
   }
 
+  _getShapeId(geom, dataObj, geomIdx) {
+    const type = geom.get('type');
+    let id = 'geom' + geomIdx + '-' + type;
+    const xScale = geom.getXScale();
+    const yScale = geom.getYScale();
+    const xField = xScale.field || 'x';
+    const yField = yScale.field || 'y';
+    const yVal = dataObj[yField];
+    let xVal;
+    if (xScale.isIdentity) {
+      xVal = xScale.value;
+    } else {
+      xVal = dataObj[xField];
+    }
+
+    if (type === 'interval' || type === 'schema') {
+      id += '-' + xVal;
+    } else if (type === 'line' || type === 'area' || type === 'path') {
+      id += '-' + type;
+    } else {
+      id += xScale.isCategory ? '-' + xVal : '-' + xVal + '-' + yVal;
+    }
+
+    const groupScales = geom._getGroupScales();
+    each(groupScales, groupScale => {
+      const field = groupScale.field;
+      if (groupScale.type !== 'identity') {
+        id += '-' + dataObj[field];
+      }
+    });
+
+    return id;
+  }
+
+  _generateShapeId() {
+    const geoms = this.get('geoms');
+    for (let i = 0, len = geoms.length; i < len; i++) {
+      const geom = geoms[i];
+      const geomContainer = geom.get('container');
+      const geomShapes = geomContainer.get('children');
+      for (let shapeIndex = 0, shapeLen = geomShapes.length; shapeIndex < shapeLen; shapeIndex++) {
+        const shape = geomShapes[shapeIndex];
+        const id = this._getShapeId(geom, shape.get('origin')._origin, i);
+        shape.id = id;
+      }
+    }
+  }
+
   /**
    * render the chart
    * @chainable
@@ -613,6 +661,9 @@ class Chart extends Base {
     canvas.sort();
     this.get('frontPlot').sort();
     Chart.plugins.notify(this, 'beforeCanvasDraw');
+
+    // 生成shapeId
+    this._generateShapeId();
     canvas.draw();
 
     this.emit(EVENT_AFTER_RENDER);
@@ -913,6 +964,10 @@ class Chart extends Base {
     const coord = this.get('coord');
     plot.reset(start, end);
     coord.reset(plot);
+  }
+
+  animate(cfg) {
+    this.set('animate', cfg);
   }
 }
 

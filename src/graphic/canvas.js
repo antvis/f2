@@ -5,6 +5,7 @@ import { mix, getPixelRatio, isString, getDomById, getWidth, getHeight, isCanvas
 import Container from './container';
 import Group from './group';
 import { requestAnimationFrame } from './util/requestAnimationFrame';
+import Animate from './anim/animate';
 
 class Canvas extends EventEmit {
   get(name) {
@@ -23,6 +24,7 @@ class Canvas extends EventEmit {
     }, cfg);
     this._initPixelRatio();
     this._initCanvas();
+    this._initAnimate();
   }
 
   _initPixelRatio() {
@@ -82,6 +84,10 @@ class Canvas extends EventEmit {
     self.set('eventController', eventController);
   }
 
+  _initAnimate() {
+    this.animate = new Animate(this);
+  }
+
   changeSize(width, height) {
     const pixelRatio = this.get('pixelRatio');
     const canvasDOM = this.get('el'); // HTMLCanvasElement or canvasElement
@@ -136,40 +142,64 @@ class Canvas extends EventEmit {
     this._attrs.toDraw = false;
   }
 
-  draw() {
+  _drawInner() {
     const self = this;
-    function drawInner() {
-      self.set('animateHandler', requestAnimationFrame(() => {
-        self.set('animateHandler', undefined);
-        if (self.get('toDraw')) {
-          drawInner();
-        }
-      }));
-      self.beforeDraw();
-      try {
-        const context = self._attrs.context;
-        self.drawInner(context);
+    self.beforeDraw();
+    try {
+      const context = self._attrs.context;
+      self.drawInner(context);
 
-        // 支付宝，微信小程序，需要调context.draw才能完成绘制， 所以这里直接判断是否有.draw方法
-        if (context.draw) {
-          context.draw();
-        }
-      } catch (ev) {
-        console.warn('error in draw canvas, detail as:');
-        console.warn(ev);
-        self._endDraw();
+      // 支付宝，微信小程序，需要调context.draw才能完成绘制， 所以这里直接判断是否有.draw方法
+      if (context.draw) {
+        context.draw();
       }
+    } catch (ev) {
+      console.warn('error in draw canvas, detail as:');
+      console.warn(ev);
       self._endDraw();
     }
+  }
+
+  draw() {
+    const self = this;
+    // function drawInner() {
+    //   self.set('animateHandler', requestAnimationFrame(() => {
+    //     self.set('animateHandler', undefined);
+    //     if (self.get('toDraw')) {
+    //       drawInner();
+    //     }
+    //   }));
+    //   self.beforeDraw();
+    //   try {
+    //     const context = self._attrs.context;
+    //     self.drawInner(context);
+
+    //     // 支付宝，微信小程序，需要调context.draw才能完成绘制， 所以这里直接判断是否有.draw方法
+    //     if (context.draw) {
+    //       context.draw();
+    //     }
+    //   } catch (ev) {
+    //     console.warn('error in draw canvas, detail as:');
+    //     console.warn(ev);
+    //     self._endDraw();
+    //   }
+    //   self._endDraw();
+    // }
 
     if (self.get('destroyed')) {
       return;
     }
-    if (self.get('animateHandler')) {
-      this._beginDraw();
-    } else {
-      drawInner();
+    // if (self.get('animateHandler')) {
+    //   this._beginDraw();
+    // } else {
+    //   drawInner();
+    // }
+
+    if (this.animate) {
+      this.animate.play();
+      return;
     }
+    this._drawInner();
   }
 
   destroy() {

@@ -4,6 +4,8 @@ import Base from '../base';
 import Global from '../global';
 import GeometryShape from './shape/shape';
 import Adjust from '@antv/adjust/lib/base';
+import { createShape } from '../graphic/index';
+import { getAnimation } from '../graphic/anim/index';
 
 const GROUP_ATTRS = [ 'color', 'size', 'shape' ];
 const FIELD_ORIGIN = '_origin';
@@ -352,6 +354,7 @@ class Geom extends Base {
         self.draw(mappedData, shapeFactory);
       }
     }
+    this._initAnimate();
     self.set('dataArray', mappedArray);
   }
 
@@ -524,6 +527,44 @@ class Geom extends Base {
         s.set('origin', shapeData);
       });
     }
+  }
+
+  _getAnimate(shape) {
+    const cache = {}; // TODO: 需要取实际缓存内容
+    const animateCfg = this.get('animateCfg');
+    const isUpdate = this.get('chart').get('isUpdate');
+    if (!animateCfg) return;
+    const { id } = shape;
+    // 说明一定是更新的
+    if (cache[id]) {
+      return animateCfg.update;
+    }
+    if (isUpdate) {
+      return animateCfg.enter;
+    }
+    return animateCfg.appear;
+  }
+
+  // 设置图形的动画
+  _initAnimate() {
+    const container = this.get('container');
+    const animateCfg = this.get('animateCfg');
+    if (!animateCfg) return;
+    const children = container.get('children');
+    for (let i = 0, len = children.length; i < len; i++) {
+      const child = children[i];
+      const animate = this._getAnimate(child);
+      const { animation: animationName } = animate;
+      const animation = getAnimation(animationName);
+      if (animation) {
+        // 群组动画，通过约定区别
+        if (/^group/.test(animationName)) {
+          return animation(container, animate, this.get('coord'));
+        }
+        animation(child, animate, this.get('coord'));
+      }
+    }
+    // TODO: 处理离场的shape
   }
 
   _generatePoints(dataArray) {

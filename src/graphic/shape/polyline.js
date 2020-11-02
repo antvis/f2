@@ -26,7 +26,7 @@ class Polyline extends Shape {
 
   getDefaultAttrs() {
     return {
-      points: null,
+      points: [],
       lineWidth: 1,
       smooth: false
     };

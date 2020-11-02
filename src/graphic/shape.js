@@ -1,9 +1,11 @@
-import { isNil } from '../util/common';
+import { isNil, upperFirst } from '../util/common';
 import Element from './element';
+import * as Easing from './anim/easing';
 
 class Shape extends Element {
   _initProperties() {
     this._attrs = {
+      fillOpacity: 1,
       zIndex: 0,
       visible: true,
       destroyed: false,
@@ -63,6 +65,54 @@ class Shape extends Element {
   }
 
   createPath() {}
+
+  // animate(cfg) {
+  //   this.set('animate', cfg);
+  // }
+
+  // 动画
+  to(time) {
+    const animateCfg = this.get('animate') || {};
+    const animateType = this.get('animateType');
+    const animate = animateCfg[animateType];
+    if (!animate) return;
+    const { startAttrs, endAttrs } = this._attrs;
+    const {
+      property,
+      duration,
+      easing = 'linear',
+      delay = 0
+    } = animate;
+    // 未开始
+    if (time <= delay) {
+      return;
+    }
+    this.attr(endAttrs);
+    if (time >= delay + duration) {
+      return;
+    }
+    const easingFn = typeof easing === 'function' ? easing : Easing[easing];
+    const t = easingFn((time - delay) / duration);
+    for (let i = 0, len = property.length; i < len; i++) {
+      const attrName = property[i];
+      let diff = endAttrs[attrName] - startAttrs[attrName];
+      if (attrName === 'fillOpacity' && isNil(endAttrs.fillOpacity)) {
+        diff = 1;
+      }
+      this.transition(attrName, diff, t, endAttrs);
+    }
+  }
+}
+
+function createShape(type, cfg = {}) {
+  const shapeType = upperFirst(type);
+  const shapeClass = Shape[shapeType];
+  const { canvas } = cfg;
+  if (shapeType === 'Text' && canvas && canvas.get('fontFamily')) {
+    cfg.attrs.fontFamily = cfg.attrs.fontFamily || canvas.get('fontFamily');
+  }
+  return new shapeClass(cfg);
 }
 
 export default Shape;
+export { createShape };

@@ -1,7 +1,8 @@
-import { mix, isObject, isArray, Array } from '../util/common';
+import { mix, isObject, isArray, Array as ArrayUtil } from '../util/common';
 import MatrixUtil from './util/matrix';
 import Vector2 from './util/vector2';
 import { parseStyle } from './util/style-parse';
+import * as Easing from './anim/easing';
 
 const ALIAS_ATTRS_MAP = {
   stroke: 'strokeStyle',
@@ -30,6 +31,24 @@ const SHAPE_ATTRS = [
 
 const CLIP_SHAPES = [ 'circle', 'sector', 'polygon', 'rect', 'polyline' ];
 
+
+function interpolateNumber(a, b, t) {
+  a = +a;
+  b -= a;
+  return a + b * t;
+}
+
+function interpolateArray(a, b, t) {
+  const nb = b ? b.length : 0;
+  const na = a ? Math.min(nb, a.length) : 0;
+  const x = new Array(na);
+  let i;
+
+  for (i = 0; i < na; ++i) x[i] = interpolateNumber(a[i], b[i], t);
+
+  return x;
+}
+
 class Element {
   _initProperties() {
     this._attrs = {
@@ -49,6 +68,7 @@ class Element {
     }
 
     this.initTransform();
+    this.initAnimate();
   }
 
   get(name) {
@@ -215,7 +235,7 @@ class Element {
     const parent = this.get('parent');
     if (parent) {
       const children = parent.get('children');
-      Array.remove(children, this);
+      ArrayUtil.remove(children, this);
     }
 
     return this;
@@ -316,8 +336,94 @@ class Element {
     }
   }
 
+  initAnimate() {
+    const { animate } = this._attrs;
+    if (!animate) return;
+    const { clip, start: startState, attrs } = animate;
+    let animateElement;
+    if (clip) {
+      animateElement = clip;
+      this.attr('clip', clip);
+    } else {
+      animateElement = this;
+    }
+    const property = Object.keys(attrs);
+    if (startState) {
+      animateElement.attr(startState);
+    }
+    const start = {
+      ...animateElement.getDefaultAttrs(),
+      ...startState
+    };
+    // 设置成动画初始状态
+    for (let i = 0, len = property.length; i < len; i++) {
+      const attrName = property[i];
+      animateElement.attr(attrName, start[attrName]);
+    }
+
+    animate.property = property;
+    animate.start = start;
+  }
+
+  animate(cfg) {
+    this.set('animate', cfg);
+    this.initAnimate();
+  }
+
+  animateTo(time) {
+    const { animate } = this._attrs;
+    if (!animate) return;
+    const {
+      clip,
+      property,
+      duration,
+      easing = 'linear',
+      delay = 0,
+      start,
+      attrs
+    } = animate;
+    const animateElement = clip ? clip : this;
+    if (!animateElement) return;
+    // 未开始
+    if (time <= delay) {
+      return;
+    }
+    // 动画结束
+    if (time >= delay + duration) {
+      // 清空裁剪区
+      if (clip) {
+        this.attr('clip', null);
+        return;
+      }
+      for (let i = 0, len = property.length; i < len; i++) {
+        const attrName = property[i];
+        animateElement.attr(attrName, attrs[attrName]);
+      }
+      return;
+    }
+    const easingFn = typeof easing === 'function' ? easing : Easing[easing];
+    const t = easingFn((time - delay) / duration);
+    for (let i = 0, len = property.length; i < len; i++) {
+      const attrName = property[i];
+      let attrValue = start[attrName] + (attrs[attrName] - start[attrName]) * t;
+      if (attrName === 'matrix') {
+        attrValue = interpolateArray(start[attrName], attrs[attrName], t);
+      }
+      animateElement.attr(attrName, attrValue);
+    }
+  }
+
   isDestroyed() {
     return this.get('destroyed');
+  }
+
+  // 动画播放到t帧
+  to() {
+
+  }
+  transition(name, diff, t, end) {
+    const value = end[name] - (1 - t) * diff;
+    this.attr(name, value);
   }
 }
 
