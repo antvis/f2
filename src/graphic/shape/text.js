@@ -101,7 +101,27 @@ class Text extends Shape {
       height = self._getTextHeight();
     }
     let subY;
+    
+    // 先描边
+    if (self.hasStroke()) {
+      if (textArr) {
+        for (let i = 0, len = textArr.length; i < len; i++) {
+          const subText = textArr[i];
+          subY = y + i * (spaceingY + fontSize) - height + fontSize; // bottom;
+          if (textBaseline === 'middle') {
+            subY += height - fontSize - (height - fontSize) / 2;
+          }
+          if (textBaseline === 'top') {
+            subY += height - fontSize;
+          }
+          context.strokeText(subText, x, subY);
+        }
+      } else {
+        context.strokeText(text, x, y);
+      }
+    }
 
+    // 后填充
     // context.beginPath();
     if (self.hasFill()) {
       const fillOpacity = attrs.fillOpacity;
@@ -125,23 +145,7 @@ class Text extends Shape {
       }
     }
 
-    if (self.hasStroke()) {
-      if (textArr) {
-        for (let i = 0, len = textArr.length; i < len; i++) {
-          const subText = textArr[i];
-          subY = y + i * (spaceingY + fontSize) - height + fontSize; // bottom;
-          if (textBaseline === 'middle') {
-            subY += height - fontSize - (height - fontSize) / 2;
-          }
-          if (textBaseline === 'top') {
-            subY += height - fontSize;
-          }
-          context.strokeText(subText, x, subY);
-        }
-      } else {
-        context.strokeText(text, x, y);
-      }
-    }
+    
   }
 
   _getAriaLabel() {
