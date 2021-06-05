@@ -19,7 +19,7 @@ function _handleMove(e) {
   const { currentDeltaX, currentDeltaY, lastPoint } = this;
   let deltaX;
   let deltaY;
-  if (TOUCH_EVENTS.indexOf(e.type) !== -1) { // support touch and miniprogram
+  if (TOUCH_EVENTS.indexOf(e.type) !== -1 && e.touches && e.touches[0]) { // support touch and miniprogram
     const currentPoint = e.touches[0];
     deltaX = currentPoint.x - lastPoint.x;
     deltaY = currentPoint.y - lastPoint.y;
